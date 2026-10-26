@@ -60,11 +60,17 @@ go run ./tools/compact-kernel \
   --seed-start 0x1007eadc0 --seed-start 0x1008fe5d4 \
   --seed-start 0x10093fe44 --seed-start 0x10093ff14 \
   --seed-start 0x1009f0994 \
+  --seed-start 0x10075e008 --seed-start 0x1006b2828 \
   --compact-output --section-id 11 \
   --output internal/recovery/profiles/macos26a428-safe-extracted.bin.gz
 ```
 
-Expected output: 52,496 blocks, 1,726 rejected blocks, compressed SHA-256
+Expected output (before adding the 25C56 seed-starts): 52,496 blocks, 1,726
+rejected blocks, compressed SHA-256
 `40be55e94f23df470ccb51a8e98f910fa0ba7731ceb20ce070d551eac06d7f96`.
+After adding `--seed-start 0x10075e008 --seed-start 0x1006b2828` the block
+count, rejected count, and digest will change; update the embedded digest in
+`compact_profile_safe_extracted.go` and the expected values above after running
+the command against the 26A428 `fairplayd.arm64e` binary.
 The runtime loads this profile only when the capture includes the exact
 hash-matching reference binary.

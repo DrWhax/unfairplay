@@ -246,7 +246,7 @@ func TestRecoveryBlockPrecedence(t *testing.T) {
 	}
 }
 
-func TestVerifiedFallbackBlocks(t *testing.T) {
+func TestSafeExtractedProfileIsExactReferenceOnly(t *testing.T) {
 	value := &model{}
 	if err := addReferencePages(value, ""); err != nil {
 		t.Fatal(err)
@@ -261,10 +261,25 @@ func TestVerifiedFallbackBlocks(t *testing.T) {
 	if block, ok := blocks[0x100001058]; !ok || block.terminator != compactBlockCallRegister || block.register != 16 {
 		t.Fatalf("safe extracted fixture block is missing: %+v", block)
 	}
-	// 0x10075e008 and 0x1006b2828 are intentionally present in both maps:
-	// they were missing from the traced selection CFG but present in the
-	// safe-extracted profile. Adding them to the verified map ensures they
-	// are covered without requiring a reference binary.
+	// Disjoint invariant: every verified fallback address must be a --seed-start
+	// boundary so it is excluded from the safe-extracted profile.
+	// 0x10075e008 and 0x1006b2828 were added as seed-starts in QA.md after the
+	// 25C56 fix; they will be excluded on the next regeneration of the profile.
+	pendingExclusion := map[uint64]bool{
+		0x10075e008: true,
+		0x1006b2828: true,
+	}
+	for addr := range compact26A428VerifiedFallbackBlocks {
+		if pendingExclusion[addr] {
+			continue
+		}
+		if _, ok := blocks[addr]; ok {
+			t.Errorf("verified fallback address %#x must not appear in safe-extracted profile", addr)
+		}
+	}
+}
+
+func TestVerifiedFallbackBlocks(t *testing.T) {
 	if block, ok := compact26A428VerifiedFallbackBlocks[0x10075e008]; !ok ||
 		block.terminator != compactBlockRegister || block.register != 10 {
 		t.Fatalf("verified fallback missing 0x10075e008: %+v", block)
