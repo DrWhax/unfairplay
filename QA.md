@@ -111,12 +111,25 @@ go run ./tools/compact-kernel \
   --seed-start 0x100796720 --seed-start 0x1007ead40 \
   --seed-start 0x1007eadc0 --seed-start 0x1008fe5d4 \
   --seed-start 0x10093fe44 --seed-start 0x10093ff14 \
-  --seed-start 0x1009f0994 \
+  --seed-start 0x1009f0994 --seed-start 0x100392a58 \
   --compact-output --section-id 11 \
   --output internal/recovery/profiles/macos26a428-safe-extracted.bin.gz
 ```
 
-Expected output: 52,492 blocks, 1,726 rejected blocks, compressed SHA-256
-`8fe676d37c0496736b6de999e97a39f3a359d3b09962f3fe25e749e8d8e8707c`.
+Expected output: 52,494 blocks, 1,725 rejected blocks, compressed SHA-256
+`66014b69e80e71ede55850c1d535e10d3beeb8019d7bd968753d4a5f140d3544`.
 The runtime loads this profile only when the capture includes the exact
 hash-matching reference binary.
+
+The exact-image extractor also includes indirect SINF entries `0x100254df4`
+(4,840 instructions, ending at `0x100259990`) and `0x1002986d0`
+(2,114 instructions, ending at `0x10029a7d4`). These blocks are mechanically
+translated, not promoted to verified fallbacks. Their larger extraction bounds
+are address-specific, and discovery adds them only for the pinned source hash.
+`UNFAIRPLAY_PROFILE_BINARY=/private/path/fairplayd.arm64e go test
+./tools/compact-kernel -run 'TestExternal(LongSINFEntries|SeededMachoExtraction)'`
+checks source instruction digests, complete translation and extraction geometry.
+
+The existing store-loop tail at `0x100392a58` is shared with SINF recovery via
+the verified fallback map. Its two 64-bit stores with post-increment, decrement
+and conditional back-edge are checked with synthetic loop counts 1 and 2.

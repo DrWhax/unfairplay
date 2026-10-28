@@ -210,3 +210,74 @@ func TestSINFEntryFrameCallAndContinuation(t *testing.T) {
 		})
 	}
 }
+
+// This is an exact-extracted block, not a promoted verified fallback.
+func TestExtractedLongSINFEntryPrefix(t *testing.T) {
+	blocks, err := loadCompact26A428SafeExtractedBlocks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	const address = uint64(0x100254df4)
+	block, ok := blocks[address]
+	if !ok || len(block.instructions) != 4839 || block.terminator != compactBlockRegister || block.register != 10 {
+		t.Fatalf("long entry geometry: ok=%v instructions=%d terminator=%d register=%d", ok, len(block.instructions), block.terminator, block.register)
+	}
+	if _, ok := compact26A428VerifiedFallbackBlocks[address]; ok {
+		t.Fatal("extracted block mislabeled verified")
+	}
+	s, write := newSINFEntryTestState(t)
+	write(s.sp+0x3b8, 0, 4)
+	s.x[16] = 0xffff1234
+	s.x[12] = 0x12345678
+	runtime := &rawSourceRuntime{stopPC: address + 9*4}
+	next, stopped, err := runCompactBlock(s, runtime, block)
+	if err != nil || !stopped || next != runtime.stopPC {
+		t.Fatalf("prefix: %#x %v %v", next, stopped, err)
+	}
+	product := uint32(0x1234)
+	product *= uint32(0x94929381)
+	if s.x[14] != 0xffffbe95 || s.x[9] != uint64(product) || s.x[12] != uint64(product&255)^0x7a {
+		t.Fatalf("prefix register mismatch")
+	}
+	stored, err := s.load(s.sp+0x3b8, 4)
+	if err != nil || stored != 0x12345678 {
+		t.Fatalf("prefix stack write %#x: %v", stored, err)
+	}
+}
+
+func TestVerifiedSINFStoreLoopTail(t *testing.T) {
+	blocks, err := loadCompact26A428SafeExtractedBlocks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, ok := compact26A428VerifiedFallbackBlocks[0x100392a58]
+	if _, overlap := blocks[0x100392a58]; overlap {
+		t.Fatal("verified block overlaps extracted")
+	}
+	if !ok || len(block.instructions) != 3 {
+		t.Fatalf("loop tail missing: %v", ok)
+	}
+	for _, count := range []uint64{1, 2} {
+		s, write := newSINFEntryTestState(t)
+		const buffer = uint64(0x720000100000)
+		write(buffer, 0, 8)
+		write(buffer+8, 0, 8)
+		s.x[0] = buffer
+		s.x[9] = 0x123456789abcdef0
+		s.x[10] = count
+		next, stopped, err := runCompactBlock(s, nil, block)
+		wantNext := uint64(0x100392a40)
+		if count == 1 {
+			wantNext = 0x100392a68
+		}
+		if err != nil || stopped || next != wantNext || s.x[0] != buffer+16 || s.x[10] != count-1 || s.z != (count == 1) {
+			t.Fatalf("loop tail count=%d next=%#x err=%v", count, next, err)
+		}
+		for _, offset := range []uint64{0, 8} {
+			got, err := s.load(buffer+offset, 8)
+			if err != nil || got != 0x123456789abcdef0 {
+				t.Fatalf("store %#x err=%v", got, err)
+			}
+		}
+	}
+}

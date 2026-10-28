@@ -2827,7 +2827,16 @@ func annotatedBlocksFromStarts(text []byte, textBase uint64, starts []uint64) []
 		if index+1 < len(starts) {
 			next = starts[index+1]
 		}
-		limit := min(next, start+512*4)
+		maxInstructions := uint64(512)
+		// These exact-image indirect entries exceed the ordinary block bound.
+		// Keep the larger bound local; truncated blocks still fail translation.
+		if start == 0x100254df4 {
+			maxInstructions = 4840
+		}
+		if start == 0x1002986d0 {
+			maxInstructions = 2114
+		}
+		limit := min(next, start+maxInstructions*4)
 		block := annotatedBlock{name: fmt.Sprintf("machoBlock%x", start), start: start}
 		for pc := start; pc+4 <= limit; pc += 4 {
 			offset := pc - textBase
@@ -2859,6 +2868,12 @@ func annotatedMachoBlocks(path string, seedStarts map[uint64]bool) ([]annotatedB
 	}
 	for start := range seedStarts {
 		startsSet[start] = true
+	}
+	// Authenticated indirect edges reach these entries; static branch discovery
+	// cannot recover its target. Restrict the additional boundary to this image.
+	if layout.BinarySHA256 == fairplay.FairPlayBuild26A428Hash {
+		startsSet[0x100254df4] = true
+		startsSet[0x1002986d0] = true
 	}
 	starts := make([]uint64, 0, len(startsSet))
 	for start := range startsSet {

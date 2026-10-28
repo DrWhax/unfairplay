@@ -281,3 +281,31 @@ func rawSourceAccountEntryBlock1000() {
 		t.Fatalf("pruned source lacks fallback:\n%s", text)
 	}
 }
+
+func TestLongSINFEntryRequiresRealTerminator(t *testing.T) {
+	const start = uint64(0x100254df4)
+	text := make([]byte, 4840*4)
+	for i := 0; i < len(text); i += 4 {
+		binary.LittleEndian.PutUint32(text[i:], 0x52800028)
+	}
+	binary.LittleEndian.PutUint32(text[len(text)-4:], 0xd65f03c0) // ret
+	blocks := annotatedBlocksFromStarts(text, start, []uint64{start})
+	if len(blocks) != 1 || len(blocks[0].instructions) != 4840 {
+		t.Fatalf("long entry truncated: %d", len(blocks[0].instructions))
+	}
+	_, skipped, _, err := generateCompactCFGSource("longEntry", blocks, 0, false)
+	if err != nil || skipped != 0 {
+		t.Fatalf("long entry rejected: %d %v", skipped, err)
+	}
+	// A nearby unrecognized entry retains the ordinary 512-instruction bound.
+	blocks = annotatedBlocksFromStarts(text, start+4, []uint64{start + 4})
+	if len(blocks[0].instructions) != 512 {
+		t.Fatal("long bound leaked to another entry")
+	}
+	binary.LittleEndian.PutUint32(text[len(text)-4:], 0x52800028)
+	blocks = annotatedBlocksFromStarts(text, start, []uint64{start})
+	_, skipped, _, err = generateCompactCFGSource("unterminated", blocks, 0, false)
+	if err == nil || skipped != 1 {
+		t.Fatalf("unterminated entry accepted: %d %v", skipped, err)
+	}
+}

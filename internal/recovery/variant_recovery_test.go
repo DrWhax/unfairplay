@@ -255,7 +255,7 @@ func TestSafeExtractedProfileIsExactReferenceOnly(t *testing.T) {
 		t.Fatal("empty reference enabled extracted blocks")
 	}
 	blocks, err := loadCompact26A428SafeExtractedBlocks()
-	if err != nil || len(blocks) != 52_492 {
+	if err != nil || len(blocks) != 52_494 {
 		t.Fatalf("safe extracted blocks = %d, %v", len(blocks), err)
 	}
 	if block, ok := blocks[0x100001058]; !ok || block.terminator != compactBlockCallRegister || block.register != 16 {
@@ -293,7 +293,7 @@ func TestEmbeddedExecutionProfileGeometry(t *testing.T) {
 		profile.selectionFrameCall != 0x1002fbb24 || len(profile.onceTokens) != 4 {
 		t.Fatalf("unexpected embedded execution profile: %+v", profile)
 	}
-	if len(profile.accountEntryBlocks) != 1086 || len(profile.bootstrapBlocks) != 953 || len(profile.selectionBlocks) != 1656 || len(profile.supplementalBlocks) != 1371 || len(profile.verifiedFallbackBlocks) != 12 {
+	if len(profile.accountEntryBlocks) != 1086 || len(profile.bootstrapBlocks) != 953 || len(profile.selectionBlocks) != 1656 || len(profile.supplementalBlocks) != 1371 || len(profile.verifiedFallbackBlocks) != 13 {
 		t.Fatal("embedded execution profile has incomplete CFG maps")
 	}
 	model := &model{binaryHash: rawSourceBinaryHash}

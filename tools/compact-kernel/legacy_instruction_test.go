@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"strings"
@@ -59,7 +60,15 @@ func TestExternalMachoBlockExtraction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(blocks) != len(layout.BasicBlocks) {
+	expectedStarts := make(map[uint64]bool)
+	for _, address := range layout.BasicBlocks {
+		expectedStarts[address] = true
+	}
+	if layout.BinarySHA256 == fairplay.FairPlayBuild26A428Hash {
+		expectedStarts[0x100254df4] = true
+		expectedStarts[0x1002986d0] = true
+	}
+	if len(blocks) != len(expectedStarts) {
 		t.Fatalf("annotated blocks=%d layout blocks=%d", len(blocks), len(layout.BasicBlocks))
 	}
 	wanted := map[uint64]bool{}
@@ -106,7 +115,7 @@ func TestExternalSeededMachoExtraction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, address := range []uint64{0x1000103a8, 0x1003384cc, 0x100484cd0, 0x1006dd508, 0x100796630, 0x100796720, 0x1007ead40, 0x1007eadc0, 0x1008fe5d4, 0x10093fe44, 0x10093ff14, 0x1009f0994} {
+	for _, address := range []uint64{0x1000103a8, 0x1003384cc, 0x100484cd0, 0x1006dd508, 0x100796630, 0x100796720, 0x1007ead40, 0x1007eadc0, 0x1008fe5d4, 0x10093fe44, 0x10093ff14, 0x1009f0994, 0x100392a58} {
 		seeds[address] = true
 	}
 	all, err := annotatedMachoBlocks(path, seeds)
@@ -126,7 +135,7 @@ func TestExternalSeededMachoExtraction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(all) != 59747 || len(all)-len(blocks) != 5529 || strings.Count(string(generated), "start:") != 52492 || skipped != 1726 {
+	if len(all) != 59749 || len(all)-len(blocks) != 5530 || strings.Count(string(generated), "start:") != 52494 || skipped != 1725 {
 		t.Fatalf("seeded extraction geometry changed: all=%d excluded=%d generated=%d skipped=%d",
 			len(all), len(all)-len(blocks), strings.Count(string(generated), "start:"), skipped)
 	}
@@ -156,6 +165,38 @@ func rawSourceBlock1000() uint64 {
 	for _, expected := range []string{"0x1000:", "compactBlockCallRegister", "0x1008:", "compactBlockRegister"} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("generated split profile lacks %q:\n%s", expected, text)
+		}
+	}
+}
+
+func TestExternalLongSINFEntries(t *testing.T) {
+	path := os.Getenv("UNFAIRPLAY_PROFILE_BINARY")
+	if path == "" {
+		t.Skip("external exact-image fixture is not configured")
+	}
+	text, base, err := openMachoARM64eText(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		start  uint64
+		count  int
+		digest string
+	}{
+		{0x100254df4, 4840, "fa3a0e393971a533d21dbec5b0a8fbd3721c4db684bc4ae555cfcb108d42fa1f"},
+		{0x1002986d0, 2114, "52f4139091687c57f242f2c6124ecb9ca4491694346b24ccc3b13173ee66a418"},
+	} {
+		raw := text[test.start-base : test.start-base+uint64(test.count)*4]
+		if fmt.Sprintf("%x", sha256.Sum256(raw)) != test.digest {
+			t.Fatalf("entry %#x bytes differ", test.start)
+		}
+		blocks := annotatedBlocksFromStarts(text, base, []uint64{test.start})
+		if len(blocks) != 1 || len(blocks[0].instructions) != test.count {
+			t.Fatalf("entry %#x truncated", test.start)
+		}
+		_, skipped, _, err := generateCompactCFGSource("entry", blocks, 0, true)
+		if err != nil || skipped != 0 {
+			t.Fatalf("entry %#x translation: skipped=%d err=%v", test.start, skipped, err)
 		}
 	}
 }
