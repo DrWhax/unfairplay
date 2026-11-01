@@ -240,18 +240,26 @@ func setupEnrollment(ctx context.Context, options setupOptions) error {
 	} else if err := restoreInvokingUserTree(work); err != nil {
 		return err
 	}
-	summary := map[string]any{
-		"schema": "unfairplay-setup-v1", "success": true,
-		"selector": manifest.App.SelectorID, "model": modelPath,
-		"model_directory": modelDirectory, "model_sha256": modelSHA256, "model_reused": reused,
-		"decrypted_ipa_sha256": recovered.Summary["decrypted_ipa_sha256"],
-		"encrypted_images":     recovered.Summary["encrypted_images"], "decrypted_pages": recovered.Summary["decrypted_pages"],
-		"warning": "The saved enrollment model is private and can decrypt personalized IPAs for this enrollment.",
-	}
+	summary := setupSummary(recovered.Summary)
+	summary["selector"] = manifest.App.SelectorID
+	summary["model"] = modelPath
+	summary["model_directory"] = modelDirectory
+	summary["model_sha256"] = modelSHA256
+	summary["model_reused"] = reused
 	if options.KeepWork {
 		summary["work_directory"] = work
 	}
 	return printJSON(summary)
+}
+
+func setupSummary(recovered map[string]any) map[string]any {
+	return map[string]any{
+		"schema": "unfairplay-setup-v1", "success": true,
+		"decrypted_ipa_sha256": recovered["decrypted_ipa_sha256"],
+		"encrypted_images":     recovered["encrypted_images"], "decrypted_pages": recovered["decrypted_pages"],
+		"plaintext_verified": recovered["plaintext_verified"],
+		"warning":            "The saved enrollment model is private and can decrypt personalized IPAs for this enrollment.",
+	}
 }
 
 func newSetupCommand() *cobra.Command {

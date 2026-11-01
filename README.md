@@ -39,6 +39,10 @@ sudo ./unfairplay setup \
 Large enrollment databases print bounded recovery progress to standard error.
 The final JSON result remains on standard output.
 
+The setup result includes `plaintext_verified` for the matching IPA. A successful
+setup can report `false` when any decrypted image lacks pre-encryption hashes;
+this is separate from whether the model was recovered and saved successfully.
+
 The saved model is private. It is tied to the Mac App Store enrollment, not to
 one app, so it can decrypt other personalized IPAs from the same enrollment.
 Back it up only in encrypted storage and never share it.

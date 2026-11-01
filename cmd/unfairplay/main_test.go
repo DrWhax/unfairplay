@@ -176,3 +176,38 @@ func TestVerificationSummaryReportsPlaintextCoverage(t *testing.T) {
 		}
 	}
 }
+
+func TestSetupSummaryReportsPlaintextCoverage(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		verified bool
+	}{
+		{"available-hashes-verified", true},
+		{"missing-plaintext-hashes", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			data, err := json.Marshal(setupSummary(map[string]any{
+				"decrypted_ipa_sha256": "synthetic-ipa-digest",
+				"encrypted_images":     2, "decrypted_pages": 3,
+				"plaintext_verified": test.verified,
+			}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got struct {
+				Schema            string `json:"schema"`
+				Success           bool   `json:"success"`
+				PlaintextVerified *bool  `json:"plaintext_verified"`
+			}
+			if err := json.Unmarshal(data, &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.PlaintextVerified == nil || *got.PlaintextVerified != test.verified {
+				t.Fatalf("setup JSON must preserve plaintext_verified=%v: %s", test.verified, data)
+			}
+			if got.Schema != "unfairplay-setup-v1" || !got.Success {
+				t.Fatalf("successful setup contract changed: %s", data)
+			}
+		})
+	}
+}
