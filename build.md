@@ -507,7 +507,7 @@ Every promoted transformation needs suitable evidence:
 1. Retest 641-, 3405-, 5494-, 7180-, and 11724-byte enrollments on the exact
    version reported by `unfairplay --version`.
 2. Recreate the private native class-key boundary control, then
-   make them part of the manual QA matrix.
+   make it part of the manual QA matrix.
 3. Promote a new structural family only after one personalized SINF selects a
    unique precursor and complete IPA validation succeeds. Add a synthetic
    regression and an opt-in private QA control.
