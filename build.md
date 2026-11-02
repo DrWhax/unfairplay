@@ -272,7 +272,7 @@ and decrypted IPA after this check was enabled.
 The account-entry and bootstrap boundary has now collapsed too. A full live-in
 audit found 3,671 bytes crossing from account entry to bootstrap, mostly native
 X.509 objects, Montgomery scratch, descriptors, and pointers. Invalid signed
-prefix or signature mutations both take the native rejection edge. Four valid
+prefix and signature mutations both take the native rejection edge. Four valid
 v5 licenses from e-Devlet, 9292, WhatsApp, and Airalo—including compact and
 multi-page layouts—produce the exact same 167-word outer table, five state
 words, optional word, and loop controls. A hardware mutation changes none of
