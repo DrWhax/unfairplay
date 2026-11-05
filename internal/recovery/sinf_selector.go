@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/DrWhax/unfairplay/internal/fairplay"
+	"github.com/DrWhax/unfairplay/pkg/fairplay"
 )
 
 // validatedSINF binds the selector and unique private payload to the same

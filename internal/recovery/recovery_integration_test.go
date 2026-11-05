@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/DrWhax/unfairplay/internal/fairplay"
 	"github.com/DrWhax/unfairplay/internal/recovery"
+	"github.com/DrWhax/unfairplay/pkg/fairplay"
 )
 
 // Private capture inputs are optional and are never stored in the repository.
