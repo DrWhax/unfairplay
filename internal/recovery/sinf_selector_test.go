@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/DrWhax/unfairplay/internal/fairplay"
+	"github.com/DrWhax/unfairplay/pkg/fairplay"
 )
 
 func TestRecoverySINFSelectorRejectsMalformedAndDuplicateAtoms(t *testing.T) {

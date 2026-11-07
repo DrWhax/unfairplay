@@ -90,7 +90,7 @@ On macOS, compare live hardware discovery with a previously verified six-byte
 
 ```sh
 UNFAIRPLAY_IOMAC_FILE=/private/path/iomac.bin \
-go test ./internal/fairplay -run '^TestExternalIORegistryHardwareMAC$' -count=1 -v
+go test ./pkg/fairplay -run '^TestExternalIORegistryHardwareMAC$' -count=1 -v
 ```
 
 This exercises the filtered `ioreg` query and checks the built-in `en0`
@@ -106,7 +106,7 @@ implementation:
 ```sh
 UNFAIRPLAY_MACOS_CREDENTIAL_MODEL=/private/path/fairplay-enrollment.bin \
 UNFAIRPLAY_MACOS_CREDENTIAL_IPA=/private/path/App.ipa \
-go test ./internal/fairplay \
+go test ./pkg/fairplay \
   -run TestExternalMacOSCredentialFromEnrollmentModel -count=1 -v
 ```
 

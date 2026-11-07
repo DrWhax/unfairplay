@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/DrWhax/unfairplay/internal/fairplay"
+	"github.com/DrWhax/unfairplay/pkg/fairplay"
 )
 
 // TestSIDBNativeSourceAndBodyOracle compares the production native-exit path

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DrWhax/unfairplay/internal/fairplay"
+	"github.com/DrWhax/unfairplay/pkg/fairplay"
 )
 
 func TestAccountClassKeyNativeOracle(t *testing.T) {
