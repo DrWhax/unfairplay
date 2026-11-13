@@ -173,6 +173,46 @@ it shows the one-time `unfairplay setup` instructions. Install
 folder and make the CLI available to IDA. See the plugin guide for configuration
 and plaintext handling.
 
+### Open encrypted IPAs in Binary Ninja
+
+Requires Binary Ninja 6.0.10905 or later. Run these commands from the repository
+root or an extracted release archive.
+
+1. **Enroll once in a terminal on your Mac.** Sign in to the native Mac App
+   Store, install an iPhone/iPad app, and open it once. Download that **same
+   app's encrypted IPA with the same Apple Account**, then run:
+
+   ```sh
+   sudo ./unfairplay setup --app /Applications/App.app --ipa App.ipa
+   ```
+
+   The saved model can decrypt other IPAs personalized for that enrollment.
+   You only need to repeat setup for a different enrollment.
+
+2. **Install the plugin.** On macOS, put its files here:
+
+   ```sh
+   unfairplay_bn_plugin_dir="$HOME/Library/Application Support/Binary Ninja/plugins/unfairplay"
+   mkdir -p "$unfairplay_bn_plugin_dir"
+   cp integrations/binaryninja/__init__.py integrations/binaryninja/plugin.json "$unfairplay_bn_plugin_dir/"
+   cp integrations/ida/unfairplay_ipa.py LICENSE "$unfairplay_bn_plugin_dir/"
+   ```
+
+   On Linux, use `~/.binaryninja/plugins/unfairplay` instead, and securely copy
+   a model recovered on the enrolled Mac. The shared `unfairplay_ipa.py` helper
+   is required alongside `__init__.py`.
+
+3. **Restart Binary Ninja**, then choose **Plugins → UnfairPlay → Open IPA…**.
+   Select the IPA and executable; the main app is listed first. The plugin
+   automatically uses the saved model and opens decrypted code in a Mach-O tab.
+   If it cannot find the CLI, select the `unfairplay` executable in its file
+   dialog, or set `UNFAIRPLAY_BINARY` before starting Binary Ninja.
+
+Use the plugin menu: ordinary **File → Open** can choose Binary Ninja's Zip
+handler, which does not decrypt the app. Keep BNDBs and exported code private.
+See the [plugin guide](integrations/binaryninja/README.md) for model overrides,
+cancellation, verification reporting and headless use.
+
 ## Advanced commands
 
 `collect` and `recover` expose the two setup stages for diagnostics and

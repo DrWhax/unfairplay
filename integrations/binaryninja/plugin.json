@@ -1,0 +1,23 @@
+{
+  "pluginmetadataversion": 2,
+  "name": "UnfairPlay IPA Loader",
+  "type": [
+    "helper"
+  ],
+  "api": [
+    "python3"
+  ],
+  "description": "Open and decrypt personalized iOS IPAs through Plugins > UnfairPlay > Open IPA and the UnfairPlay CLI.",
+  "longdescription": "A global Open IPA menu command selects the UnfairPlay container transform explicitly, offers CLI decryption with saved enrollment models, and opens the selected executable through the native Mach-O loader. The container transform also supports API sessions. Install unfairplay_ipa.py beside __init__.py as documented in README.md. No FairPlay key recovery runs in Python.",
+  "license": {
+    "name": "MIT",
+    "text": "MIT License\n\nCopyright (c) 2021 Majd Alfhaily\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+  },
+  "platforms": [
+    "Darwin",
+    "Linux"
+  ],
+  "version": "0.3.1",
+  "author": "UnfairPlay contributors",
+  "minimumbinaryninjaversion": 10905
+}

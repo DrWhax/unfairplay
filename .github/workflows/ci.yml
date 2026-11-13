@@ -20,6 +20,8 @@ jobs:
       - run: go vet ./...
       - name: Test IDA loader with synthetic fixtures
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/ida/tests -v
+      - name: Test Binary Ninja loader with synthetic fixtures
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/binaryninja/tests -v
 
   build:
     strategy:

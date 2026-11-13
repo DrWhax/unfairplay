@@ -327,3 +327,26 @@ missing pre-encryption hashes; and reopening a saved IDB. Temporarily override
 `UNFAIRPLAY_IDA_MODEL` to test missing and wrong enrollment cases without moving
 or modifying the saved models. Report only anonymous control labels, GUI/CLI
 outcomes and verification booleans; keep IPAs, IDBs, paths and diagnostics private.
+
+## Binary Ninja IPA container control
+
+Run the synthetic regressions without Binary Ninja:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/binaryninja/tests -v
+```
+
+The opt-in native control in `integrations/binaryninja/tests/native_smoke.py`
+uses synthetic arm64 code and a fake CLI. It checks transform registration,
+discovery, extraction and native Mach-O loading without changing the current
+user view. It can run inside the Binary Ninja GUI's Python console or under
+a headless-capable license; see `integrations/binaryninja/README.md`.
+
+For private manual testing, use Plugins → UnfairPlay → Open IPA…, confirm an
+enrolled encrypted IPA decrypts, and inspect plaintext instructions in the
+selected executable. Also test a decrypted IPA, missing/mismatched models,
+cancellation, declined unverified-plaintext confirmation, missing hashes,
+nested executables, universal architecture selection and reopening a BNDB. Confirm temporary IPA/report
+files are removed. The ordinary Zip transform must not be mistaken for the
+UnfairPlay transform. Keep BNDBs, original archives, models, identifying
+measurements and private diagnostics out of shared reports.

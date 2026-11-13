@@ -25,6 +25,8 @@ jobs:
       - run: go vet ./...
       - name: Test IDA loader with synthetic fixtures
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/ida/tests -v
+      - name: Test Binary Ninja loader with synthetic fixtures
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/binaryninja/tests -v
 
   build:
     runs-on: ubuntu-latest
@@ -66,6 +68,9 @@ jobs:
           cp LICENSE LICENSE-DARKPHOENIX.txt LICENSE-MACOSFAIRFREE.txt NOTICE README.md staging/
           mkdir -p staging/integrations/ida
           cp integrations/ida/unfairplay_ipa.py integrations/ida/README.md staging/integrations/ida/
+          mkdir -p staging/integrations/binaryninja
+          cp integrations/binaryninja/__init__.py integrations/binaryninja/plugin.json integrations/binaryninja/README.md staging/integrations/binaryninja/
+          cp integrations/ida/unfairplay_ipa.py LICENSE staging/integrations/binaryninja/
 
       - name: Smoke test native binary
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
@@ -81,14 +86,16 @@ jobs:
           mv staging "${ASSET}"
           tar -czf "${ASSET}.tar.gz" "${ASSET}"
 
-      - name: Verify packaged notices and IDA loader
+      - name: Verify packaged notices and disassembler loaders
         if: matrix.archive == 'tar.gz'
         env:
           ASSET: unfairplay-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
         run: |
-          for file in LICENSE LICENSE-DARKPHOENIX.txt LICENSE-MACOSFAIRFREE.txt NOTICE README.md integrations/ida/unfairplay_ipa.py integrations/ida/README.md; do
+          for file in LICENSE LICENSE-DARKPHOENIX.txt LICENSE-MACOSFAIRFREE.txt NOTICE README.md integrations/ida/unfairplay_ipa.py integrations/ida/README.md integrations/binaryninja/__init__.py integrations/binaryninja/plugin.json integrations/binaryninja/README.md; do
             tar -xOf "${ASSET}.tar.gz" "${ASSET}/${file}" | cmp "${file}" -
           done
+          tar -xOf "${ASSET}.tar.gz" "${ASSET}/integrations/binaryninja/unfairplay_ipa.py" | cmp integrations/ida/unfairplay_ipa.py -
+          tar -xOf "${ASSET}.tar.gz" "${ASSET}/integrations/binaryninja/LICENSE" | cmp LICENSE -
 
       - name: Upload packaged binary
         uses: actions/upload-artifact@v7
