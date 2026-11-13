@@ -23,6 +23,8 @@ jobs:
           cache: true
       - run: go test ./...
       - run: go vet ./...
+      - name: Test IDA loader with synthetic fixtures
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/ida/tests -v
 
   build:
     runs-on: ubuntu-latest
@@ -62,6 +64,8 @@ jobs:
             -o "staging/unfairplay${{ matrix.extension }}" \
             ./cmd/unfairplay
           cp LICENSE LICENSE-DARKPHOENIX.txt LICENSE-MACOSFAIRFREE.txt NOTICE README.md staging/
+          mkdir -p staging/integrations/ida
+          cp integrations/ida/unfairplay_ipa.py integrations/ida/README.md staging/integrations/ida/
 
       - name: Smoke test native binary
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
@@ -77,12 +81,12 @@ jobs:
           mv staging "${ASSET}"
           tar -czf "${ASSET}.tar.gz" "${ASSET}"
 
-      - name: Verify packaged notices
+      - name: Verify packaged notices and IDA loader
         if: matrix.archive == 'tar.gz'
         env:
           ASSET: unfairplay-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
         run: |
-          for file in LICENSE LICENSE-DARKPHOENIX.txt LICENSE-MACOSFAIRFREE.txt NOTICE README.md; do
+          for file in LICENSE LICENSE-DARKPHOENIX.txt LICENSE-MACOSFAIRFREE.txt NOTICE README.md integrations/ida/unfairplay_ipa.py integrations/ida/README.md; do
             tar -xOf "${ASSET}.tar.gz" "${ASSET}/${file}" | cmp "${file}" -
           done
 

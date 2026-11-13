@@ -11,7 +11,7 @@ import (
 
 func TestCommandsAreRegistered(t *testing.T) {
 	root := newRootCommand()
-	for _, name := range []string{"setup", "collect", "recover", "decrypt", "convert-ipa-macos", "verify", "doctor"} {
+	for _, name := range []string{"setup", "collect", "recover", "decrypt", "convert-ipa-macos", "convert-decrypted-ipa-macos", "verify", "doctor"} {
 		command, _, err := root.Find([]string{name})
 		if err != nil || command == root || command.Name() != name {
 			t.Fatalf("command %s is not registered: %v", name, err)
@@ -125,5 +125,18 @@ func TestVerificationSummaryReportsPlaintextCoverage(t *testing.T) {
 		if got["plaintext_verified"] != verified {
 			t.Fatalf("plaintext verification status lost: %v", got)
 		}
+	}
+}
+
+func TestConvertDecryptedIPAMacOSFlags(t *testing.T) {
+	command := newConvertDecryptedIPAMacOSCommand()
+	for _, name := range []string{"input", "output"} {
+		if command.Flags().Lookup(name) == nil {
+			t.Fatalf("missing --%s", name)
+		}
+	}
+	command.SetArgs([]string{"--input", "example.zip"})
+	if err := command.Execute(); err == nil {
+		t.Fatal("accepted a non-IPA input")
 	}
 }

@@ -18,6 +18,8 @@ jobs:
           cache: true
       - run: go test ./...
       - run: go vet ./...
+      - name: Test IDA loader with synthetic fixtures
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/ida/tests -v
 
   build:
     strategy:

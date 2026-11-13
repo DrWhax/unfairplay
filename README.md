@@ -76,7 +76,42 @@ Available pre-encryption page hashes must match; a mismatch fails closed.
 Older executables without these tables can decrypt, but report
 `plaintext_verified=false`.
 
-### Convert an IPA for macOS
+### Run a decrypted IPA on an Apple silicon Mac
+
+After decryption, build a locally signed app:
+
+```sh
+./unfairplay convert-decrypted-ipa-macos \
+  --input App.decrypted.ipa \
+  --output App.macos.app
+open App.macos.app
+```
+
+Run conversion on an Apple silicon Mac with `/usr/bin/codesign` available.
+No enrollment model is needed for this step. The default output is
+`<input-stem>.macos.app`; the destination must not already exist.
+
+The command selects generic arm64 slices, retargets their loader metadata to
+Mac Catalyst, fixes the Swift UIKit library path when present, updates the
+main bundle metadata, and ad-hoc signs executable files and nested bundles.
+Load-command growth requires bounded, unused header padding. It retains the
+app's minimum binary OS requirement with a Catalyst 14.0 floor. This loader
+approach is also used by [PlayCover](https://github.com/PlayCover/PlayCover/blob/develop/PlayCover/Utils/Macho.swift).
+
+The output removes Store licenses, provisioning profiles, stale bundle
+signatures, and Watch apps. It uses fresh sandbox entitlements for outgoing
+network connections and user-selected files. Original account entitlements,
+push notifications, app groups, keychain groups, and iCloud access are not
+preserved. Symlinks, conflicting archive names, encrypted images, 32-bit-only
+images, and arm64e-only images are rejected.
+
+This is a compatibility conversion, not a rebuild from source. Apps can still
+fail because of unavailable iOS APIs, hardware, services, or app-specific checks.
+The JSON result reports `signature_verified=true` only after native signature
+verification; `runtime_verified=false` means the converter has not launched
+or tested the app. Keep decrypted apps private under the use terms above.
+
+### Convert an encrypted IPA for macOS FairPlay
 
 This requires an encrypted IPA personalized for the same Store enrollment as
 your saved model. Convert it with:
@@ -127,6 +162,16 @@ The converted IPA and wrapper contain a private account license. Keep them
 private. This feature does not decrypt, modify, re-sign, or bypass checks inside
 the app. Apps may still reject macOS, require unavailable hardware, or depend on
 services that are not present on macOS.
+
+### Open encrypted IPAs in IDA Pro 9.4
+
+The [IDA archive-loader plugin](integrations/ida/README.md) offers UnfairPlay
+decryption when opening an encrypted IPA, discovers saved enrollment models,
+and loads the chosen executable with IDA's Mach-O loader. If no model exists,
+it shows the one-time `unfairplay setup` instructions. Install
+`integrations/ida/unfairplay_ipa.py` in your IDA user directory's `loaders`
+folder and make the CLI available to IDA. See the plugin guide for configuration
+and plaintext handling.
 
 ## Advanced commands
 

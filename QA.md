@@ -286,3 +286,44 @@ The `recover` and `verify` summaries expose this boolean as well.
 For schema compatibility, `supf_member` names the selected page-key file even
 when it is a SUPP. Canonical capture metadata uses `architectures` for SUPFs and
 `file_origin_pages` for SUPPs; SUPP has no architecture identifier.
+
+## Decrypted IPA to macOS app control
+
+Synthetic parser and archive controls run with `go test ./...`. On an Apple
+silicon Mac with Xcode command line tools, also run:
+
+```sh
+UNFAIRPLAY_TEST_MACOS_CONVERSION=1 go test ./pkg/fairplay \
+  -run '^TestNativeMacOSAppConversion$' -count=1 -v
+```
+
+This compiles a synthetic program, changes its input platform to iOS, converts
+it back to Catalyst, verifies the signed app with native `codesign`, and runs
+the synthetic executable. It uses no private fixtures and does not establish
+UIKit, LaunchServices, or third-party application runtime compatibility.
+Private application launch checks are manual and opt-in; report anonymous
+control labels only. Conversion's `runtime_verified` remains false even when
+its signature is valid.
+
+## IDA Pro 9.4 IPA loader control
+
+Run the synthetic controls with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s integrations/ida/tests -v
+```
+
+The opt-in native control in `integrations/ida/tests/native_smoke.py` requires a
+licensed IDA 9.4 installation and `idapro` on Python's import path. It exercises
+archive loader discovery and Mach-O handoff with synthetic IPAs and a fake CLI.
+It does not establish real enrollment decryption inside IDA or verify GUI
+interaction. See `integrations/ida/README.md` for invocation details.
+
+For a manual private control, install the loader and open an enrolled encrypted
+IPA. Confirm the decryption prompt appears, the CLI completes, and the selected
+executable loads as Mach-O with plaintext instructions. Also check an already
+decrypted IPA; no model; a wrong enrollment; declined decryption; cancellation;
+missing pre-encryption hashes; and reopening a saved IDB. Temporarily override
+`UNFAIRPLAY_IDA_MODEL` to test missing and wrong enrollment cases without moving
+or modifying the saved models. Report only anonymous control labels, GUI/CLI
+outcomes and verification booleans; keep IPAs, IDBs, paths and diagnostics private.
