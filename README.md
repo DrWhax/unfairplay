@@ -26,21 +26,26 @@ go build -o unfairplay ./cmd/unfairplay
 ## Usage
 
 First, sign in to the native Mac App Store. Install an iPhone or iPad app and
-open it once. On this experimental branch, setup can validate against the
-installed iOS bundle without a separate IPA download.
-
-Set up reusable decryption once:
+open it once. Set up reusable decryption from that installed app:
 
 ```sh
 sudo ./unfairplay setup --app /Applications/App.app
 ```
 
-When `--ipa` is omitted, setup and collect build a private validation archive
-from the complete inner iOS bundle, preserving executables and licenses. The
-archive must contain supported encrypted images and their matching license
-records. Unsupported, incomplete, symlinked, or already-decrypted bundles fail
-closed; pass `--ipa App.ipa` with a matching personalized download instead.
-An explicit IPA always takes precedence; there is no automatic input retry.
+No separate IPA download is needed when the installed bundle contains supported
+encrypted images and their matching licenses. Setup and collect build a private
+validation archive from the complete inner iOS bundle, preserving its bytes.
+Unsupported, incomplete, symlinked, or already-decrypted bundles fail closed.
+
+To validate against a downloaded IPA instead, pass `--ipa` explicitly:
+
+```sh
+sudo ./unfairplay setup --app /Applications/App.app --ipa App.ipa
+```
+
+The installed app and IPA must be the same app and belong to the same Store
+enrollment. An explicit IPA takes precedence; failed validation never triggers
+an automatic retry using the installed bundle.
 
 Recovery still authenticates the selected SINF and requires complete archive
 decryption before saving a model. Reports identify `validation_source` as
@@ -50,9 +55,10 @@ installed variant, not the original Store download or any omitted architectures.
 Large enrollment databases print bounded recovery progress to standard error.
 The final JSON result remains on standard output.
 
-The setup result includes `plaintext_verified` for the validation archive. A successful
-setup can report `false` when any decrypted image lacks pre-encryption hashes;
-this is separate from whether the model was recovered and saved successfully.
+The setup result includes `plaintext_verified` for the validation archive.
+A successful setup can report `false` when any decrypted image lacks
+pre-encryption hashes; this is separate from whether the model was recovered
+and saved successfully.
 
 The saved model is private. It is tied to the Mac App Store enrollment, not to
 one app, so it can decrypt other personalized IPAs from the same enrollment.
@@ -340,10 +346,11 @@ instruction-audit fields must migrate to the plaintext validation fields.
 macOS arm64 and Linux amd64/arm64 are supported. Windows is compile-tested but
 cannot yet enforce the required private-file permissions.
 
-During setup, the installed app, matching IPA, Mac state, and hardware identity
-must belong to the same enrollment. The resulting model can then decrypt other
-IPAs personalized for that enrollment. Account or selector mismatches are
-rejected.
+During setup, the installed app, validation archive, Mac state, and hardware
+identity must belong to the same enrollment. This applies whether the archive
+is reconstructed from the installed bundle or supplied with `--ipa`. The
+resulting model can decrypt other IPAs personalized for that enrollment.
+Account or selector mismatches are rejected.
 
 Keep capture and model files private. Do not share SIDB, SINF, hardware data,
 recovery models, or decrypted apps. Decrypted IPAs are analysis files and need

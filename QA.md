@@ -351,9 +351,9 @@ files are removed. The ordinary Zip transform must not be mistaken for the
 UnfairPlay transform. Keep BNDBs, original archives, models, identifying
 measurements and private diagnostics out of shared reports.
 
-## Experimental app-only enrollment control
+## App-only enrollment control
 
-On the app-only setup branch, first run a read-only installed-bundle control:
+First run a read-only installed-bundle control:
 
 ```sh
 UNFAIRPLAY_INSTALLED_APP=/Applications/App.app \
@@ -382,7 +382,7 @@ end-to-end archive decryption, private permissions, missing licenses, malformed
 and unencrypted images, unsafe names, symlinks, collisions and provenance.
 Keep private control data out of the worktree and shared reports.
 
-### App-only experiment evidence
+### App-only validation evidence
 
 One private installed-app control completed fresh setup without `--ipa`, with
 `validation_source=installed-app` and `plaintext_verified=true`. The newly
