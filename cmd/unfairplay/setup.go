@@ -73,12 +73,11 @@ func newSetupCommand() *cobra.Command {
 	}
 	flags := command.Flags()
 	flags.StringVar(&options.AppPath, "app", "", "Native Mac App Store-installed .app path")
-	flags.StringVar(&options.IPAPath, "ipa", "", "Matching personalized encrypted IPA")
+	flags.StringVar(&options.IPAPath, "ipa", "", "Matching personalized encrypted IPA (defaults to a validation archive of --app)")
 	flags.StringVar(&options.ModelDirectory, "model-dir", "", "Private model directory (defaults to the user configuration directory)")
 	flags.StringVar(&options.HardwareInterface, "interface", "en0", "Built-in IORegistry network interface")
 	flags.BoolVar(&options.KeepWork, "keep-work", false, "Keep the private capture and validation files")
 	_ = command.MarkFlagRequired("app")
-	_ = command.MarkFlagRequired("ipa")
 	return command
 }
 

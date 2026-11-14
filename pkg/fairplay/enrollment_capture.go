@@ -91,6 +91,7 @@ type EnrollmentCaptureManifest struct {
 	HardwareMAC    EnrollmentCaptureFile   `json:"hardware_iomac"`
 	App            EnrollmentCaptureApp    `json:"app"`
 	IPA            *EnrollmentCaptureFile  `json:"ipa,omitempty"`
+	IPASource      string                  `json:"ipa_source,omitempty"`
 	Files          []EnrollmentCaptureFile `json:"files"`
 	Warnings       []string                `json:"warnings,omitempty"`
 }
@@ -589,37 +590,44 @@ func CollectEnrollment(options EnrollmentCollectOptions) (EnrollmentCaptureManif
 	var ipaFile *EnrollmentCaptureFile
 	ipaRoot := ""
 	targetSINFPath := ""
-	if options.IPAPath != "" {
-		copied, err := copyPrivateFile(options.IPAPath, filepath.Join(options.OutputPath, "ipa", "App.ipa"))
-		if err != nil {
-			return manifest, err
-		}
-		copied = relativeCaptureFile(options.OutputPath, copied)
-		files = append(files, copied)
-		ipaFile = &copied
-		ipaRoot, err = ipaRootForSelector(options.IPAPath, selector)
-		if err != nil {
-			return manifest, err
-		}
-		targetMember := ipaRoot + "/SC_Info/" + metadata.Executable + ".sinf"
-		targetSINF, err := readIPAMember(options.IPAPath, targetMember)
-		if err != nil {
-			return manifest, err
-		}
-		targetSelector, parseErr := ParseSINFSelector(targetSINF)
-		if parseErr != nil || targetSelector != selector {
-			clear(targetSINF)
-			return manifest, fmt.Errorf("IPA target SINF selector mismatch")
-		}
-		targetFile, err := writePrivateBytes(filepath.Join(options.OutputPath, "ipa", "App.sinf"), targetSINF)
-		clear(targetSINF)
-		if err != nil {
-			return manifest, err
-		}
-		targetFile = relativeCaptureFile(options.OutputPath, targetFile)
-		files = append(files, targetFile)
-		targetSINFPath = targetFile.Path
+	ipaSource := "provided"
+	ipaPath := options.IPAPath
+	var copied EnrollmentCaptureFile
+	if ipaPath == "" {
+		ipaSource = "installed-app"
+		ipaPath = filepath.Join(options.OutputPath, "ipa", "App.ipa")
+		copied, err = installedValidationIPA(app, ipaPath)
+	} else {
+		copied, err = copyPrivateFile(ipaPath, filepath.Join(options.OutputPath, "ipa", "App.ipa"))
 	}
+	if err != nil {
+		return manifest, err
+	}
+	copied = relativeCaptureFile(options.OutputPath, copied)
+	files = append(files, copied)
+	ipaFile = &copied
+	ipaRoot, err = ipaRootForSelector(ipaPath, selector)
+	if err != nil {
+		return manifest, err
+	}
+	targetMember := ipaRoot + "/SC_Info/" + metadata.Executable + ".sinf"
+	targetSINF, err := readIPAMember(ipaPath, targetMember)
+	if err != nil {
+		return manifest, err
+	}
+	targetSelector, parseErr := ParseSINFSelector(targetSINF)
+	if parseErr != nil || targetSelector != selector {
+		clear(targetSINF)
+		return manifest, fmt.Errorf("IPA target SINF selector mismatch")
+	}
+	targetFile, err := writePrivateBytes(filepath.Join(options.OutputPath, "ipa", "App.sinf"), targetSINF)
+	clear(targetSINF)
+	if err != nil {
+		return manifest, err
+	}
+	targetFile = relativeCaptureFile(options.OutputPath, targetFile)
+	files = append(files, targetFile)
+	targetSINFPath = targetFile.Path
 
 	installedExecutablePath := options.InstalledExecutablePath
 	if installedExecutablePath == "" {
@@ -639,10 +647,10 @@ func CollectEnrollment(options EnrollmentCollectOptions) (EnrollmentCaptureManif
 			TargetSINFPath: targetSINFPath,
 			IPAMemberRoot:  ipaRoot,
 		},
-		IPA: ipaFile, Files: files,
+		IPA: ipaFile, IPASource: ipaSource, Files: files,
 	}
-	if ipaFile == nil {
-		manifest.Warnings = append(manifest.Warnings, "capture has no IPA; recovery requires a matching personalized IPA")
+	if ipaSource == "installed-app" {
+		manifest.Warnings = append(manifest.Warnings, "validation IPA was reconstructed from the installed iOS bundle; it is not the original Store download")
 	}
 	if err := writePrivateJSON(filepath.Join(options.OutputPath, "manifest.json"), manifest); err != nil {
 		return EnrollmentCaptureManifest{}, err
@@ -692,6 +700,12 @@ func LoadEnrollmentCapture(path string, verify bool) (EnrollmentCaptureManifest,
 	}
 	if manifest.Schema != EnrollmentCaptureSchema && manifest.Schema != legacyUnfairPlayEnrollmentCaptureSchema && manifest.Schema != legacyEnrollmentCaptureSchema {
 		return manifest, fmt.Errorf("unsupported enrollment capture schema %q", manifest.Schema)
+	}
+	if manifest.IPASource != "" && manifest.IPASource != "provided" && manifest.IPASource != "installed-app" {
+		return manifest, fmt.Errorf("unsupported capture IPA source %q", manifest.IPASource)
+	}
+	if manifest.IPASource != "" && manifest.IPA == nil {
+		return manifest, fmt.Errorf("capture IPA source has no IPA descriptor")
 	}
 	if manifest.FairPlayd.SHA256 == "" {
 		manifest.FairPlay, _ = ResolveFairPlayBuildSupport("", manifest.BuildVersion)

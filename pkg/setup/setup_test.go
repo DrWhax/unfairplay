@@ -99,3 +99,12 @@ func TestSetupSummaryReportsPlaintextCoverage(t *testing.T) {
 		})
 	}
 }
+
+func TestSetupSummaryPreservesValidationSource(t *testing.T) {
+	for _, source := range []string{"installed-app", "provided"} {
+		summary := setupSummary(map[string]any{"validation_source": source})
+		if summary["validation_source"] != source {
+			t.Fatal("setup summary lost validation provenance")
+		}
+	}
+}

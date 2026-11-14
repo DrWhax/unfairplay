@@ -209,6 +209,7 @@ func setupSummary(recovered map[string]any) map[string]any {
 		"decrypted_ipa_sha256": recovered["decrypted_ipa_sha256"],
 		"encrypted_images":     recovered["encrypted_images"], "decrypted_pages": recovered["decrypted_pages"],
 		"plaintext_verified": recovered["plaintext_verified"],
+		"validation_source":  recovered["validation_source"],
 		"warning":            "The saved enrollment model is private and can decrypt personalized IPAs for this enrollment.",
 	}
 }

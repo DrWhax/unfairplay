@@ -140,3 +140,17 @@ func TestConvertDecryptedIPAMacOSFlags(t *testing.T) {
 		t.Fatal("accepted a non-IPA input")
 	}
 }
+
+func TestSetupIPAIsOptional(t *testing.T) {
+	command := newSetupCommand()
+	flag := command.Flags().Lookup("ipa")
+	if flag == nil {
+		t.Fatal("missing explicit --ipa override")
+	}
+	if len(flag.Annotations["cobra_annotation_bash_completion_one_required_flag"]) != 0 {
+		t.Fatal("--ipa remains required")
+	}
+	if len(command.Flags().Lookup("app").Annotations["cobra_annotation_bash_completion_one_required_flag"]) == 0 {
+		t.Fatal("--app must remain required")
+	}
+}

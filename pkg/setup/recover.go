@@ -84,6 +84,10 @@ func Recover(ctx context.Context, options RecoverOptions) (Result, error) {
 	if manifest.IPA == nil {
 		return outcome, errors.New("capture has no matching personalized IPA")
 	}
+	validationSource := manifest.IPASource
+	if validationSource == "" {
+		validationSource = "provided"
+	}
 	canonical, err := fairplay.NormalizeEnrollmentCapture(options.Capture, manifest)
 	if err != nil {
 		return outcome, fmt.Errorf("normalize capture: %w", err)
@@ -164,6 +168,7 @@ func Recover(ctx context.Context, options RecoverOptions) (Result, error) {
 		"recovery_iterations": recovered.Iterations, "recovery_state_sha256": recovered.StateSHA256,
 		"decoded_registry_candidates": recovered.DecodedRegistryCandidates,
 		"recovery_layout":             recovered.Layout,
+		"validation_source":           validationSource,
 		"promotion_gate":              "complete-sinf-and-ipa-validation",
 		"reference_code_source":       referenceSource,
 	}

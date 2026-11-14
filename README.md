@@ -26,20 +26,31 @@ go build -o unfairplay ./cmd/unfairplay
 ## Usage
 
 First, sign in to the native Mac App Store. Install an iPhone or iPad app and
-open it once. Download a matching encrypted IPA with the same Apple Account.
+open it once. On this experimental branch, setup can validate against the
+installed iOS bundle without a separate IPA download.
 
 Set up reusable decryption once:
 
 ```sh
-sudo ./unfairplay setup \
-  --app /Applications/App.app \
-  --ipa App.ipa
+sudo ./unfairplay setup --app /Applications/App.app
 ```
+
+When `--ipa` is omitted, setup and collect build a private validation archive
+from the complete inner iOS bundle, preserving executables and licenses. The
+archive must contain supported encrypted images and their matching license
+records. Unsupported, incomplete, symlinked, or already-decrypted bundles fail
+closed; pass `--ipa App.ipa` with a matching personalized download instead.
+An explicit IPA always takes precedence; there is no automatic input retry.
+
+Recovery still authenticates the selected SINF and requires complete archive
+decryption before saving a model. Reports identify `validation_source` as
+`installed-app` or `provided`. A reconstructed validation archive describes the
+installed variant, not the original Store download or any omitted architectures.
 
 Large enrollment databases print bounded recovery progress to standard error.
 The final JSON result remains on standard output.
 
-The setup result includes `plaintext_verified` for the matching IPA. A successful
+The setup result includes `plaintext_verified` for the validation archive. A successful
 setup can report `false` when any decrypted image lacks pre-encryption hashes;
 this is separate from whether the model was recovered and saved successfully.
 
@@ -179,11 +190,10 @@ Requires Binary Ninja 6.0.10905 or later. Run these commands from the repository
 root or an extracted release archive.
 
 1. **Enroll once in a terminal on your Mac.** Sign in to the native Mac App
-   Store, install an iPhone/iPad app, and open it once. Download that **same
-   app's encrypted IPA with the same Apple Account**, then run:
+   Store, install an iPhone/iPad app, and open it once. Then run:
 
    ```sh
-   sudo ./unfairplay setup --app /Applications/App.app --ipa App.ipa
+   sudo ./unfairplay setup --app /Applications/App.app
    ```
 
    The saved model can decrypt other IPAs personalized for that enrollment.
@@ -219,7 +229,7 @@ cancellation, verification reporting and headless use.
 archived captures. `doctor` checks a capture, IPA, or model.
 
 ```sh
-sudo ./unfairplay collect --app /Applications/App.app --ipa App.ipa --output App.capture
+sudo ./unfairplay collect --app /Applications/App.app --output App.capture
 ./unfairplay recover --capture App.capture --output App.recovery
 ```
 
@@ -255,7 +265,7 @@ Each app still has its own key inside its personalized SINF.
 Apple can change enrollment state layouts or semantic tables. UnfairPlay
 follows explicit SIDB version, state-slot, root-cursor, and selector rules.
 An unmapped format or tag-constructor path stops recovery with an error. It never
-publishes a model until the matching IPA decrypts and passes the applicable
+publishes a model until the supplied or reconstructed IPA decrypts and passes the applicable
 validation checks; missing plaintext hashes remain explicitly unverified.
 
 Patches and test reports are welcome. Include the macOS build, UnfairPlay
@@ -268,7 +278,7 @@ identity, enrollment models, decrypted apps, or Apple credentials.
 Yes. Collection must start on an enrolled Mac. You can either run `setup` on
 that Mac and securely copy the resulting model, or copy a complete private
 `collect` bundle and run `recover` elsewhere. The bundle contains the installed
-license files, system SC Info state, built-in IOMACAddress, matching IPA, and
+license files, system SC Info state, built-in IOMACAddress, validation IPA, and
 macOS build metadata.
 
 The recovered model and personalized IPAs can then be used on macOS or Linux;

@@ -350,3 +350,34 @@ nested executables, universal architecture selection and reopening a BNDB. Confi
 files are removed. The ordinary Zip transform must not be mistaken for the
 UnfairPlay transform. Keep BNDBs, original archives, models, identifying
 measurements and private diagnostics out of shared reports.
+
+## Experimental app-only enrollment control
+
+On the app-only setup branch, first run a read-only installed-bundle control:
+
+```sh
+UNFAIRPLAY_INSTALLED_APP=/Applications/App.app \
+  go test ./pkg/fairplay -run '^TestExternalInstalledValidationIPA$' -count=1 -v
+```
+
+Optionally set `UNFAIRPLAY_INSTALLED_MODEL` to an existing private model or
+registry directory to test full decryption of the reconstructed archive.
+Temporary encrypted archives, plaintext and reports are removed by the test.
+
+Then exercise fresh recovery in an isolated private model directory:
+
+```sh
+sudo ./unfairplay setup --app /Applications/App.app --model-dir /private/path/test-models
+./unfairplay verify --input App.ipa --model /private/path/test-models
+```
+
+The independent IPA must match the enrollment. Confirm setup reports
+`validation_source=installed-app`, and record `plaintext_verified` separately
+for the reconstructed bundle and independent IPA. Do not treat missing hashes
+as verified. Also exercise explicit `--ipa`: it must report `provided` and
+must never retry using the installed bundle when its validation fails.
+
+Synthetic controls cover whole-bundle preservation, nested encrypted images,
+end-to-end archive decryption, private permissions, missing licenses, malformed
+and unencrypted images, unsafe names, symlinks, collisions and provenance.
+Keep private control data out of the worktree and shared reports.
