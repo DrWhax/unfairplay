@@ -381,3 +381,17 @@ Synthetic controls cover whole-bundle preservation, nested encrypted images,
 end-to-end archive decryption, private permissions, missing licenses, malformed
 and unencrypted images, unsafe names, symlinks, collisions and provenance.
 Keep private control data out of the worktree and shared reports.
+
+### App-only experiment evidence
+
+One private installed-app control completed fresh setup without `--ipa`, with
+`validation_source=installed-app` and `plaintext_verified=true`. The newly
+recovered model was byte-identical to the previously saved reference model.
+It also passed the private QA matrix against two separately downloaded IPA
+controls from the same enrollment, including a second app. Both controls
+reported verified plaintext and retained no plaintext artifacts. The matrix
+pinned model/output hashes and image/page counts in a private manifest.
+
+These controls establish this installed-bundle layout and enrollment only;
+other installed variants, accounts and missing-hash cases require their own
+controls. No private fixture data or identifying measurements are committed.
