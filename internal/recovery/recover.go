@@ -2,6 +2,7 @@ package recovery
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"os"
 	"sync"
@@ -106,17 +107,26 @@ func Recover(options Options) (Result, error) {
 		return Result{}, err
 	}
 	defer inputs.clear()
-	if _, err := validateCurrentSUPFFiles(inputs.files); err != nil {
+	return recoverCurrentInputs(ctx, inputs, options.Progress, nil)
+}
+
+// An authority override is available only to package-local synthetic tests.
+// Every public recovery entry point uses the pinned authority.
+func recoverCurrentInputs(ctx context.Context, inputs *currentRecoveryInputs, progress func(Progress), authority *rsa.PublicKey) (Result, error) {
+	if authority == nil {
+		authority = fairPlayCAPublicKey()
+	}
+	if _, err := validateCurrentSUPFFilesWithCA(inputs.files, authority); err != nil {
 		return Result{}, err
 	}
-	if options.Progress != nil {
-		options.Progress(Progress{Phase: "decode-sidb"})
+	if progress != nil {
+		progress(Progress{Phase: "decode-sidb"})
 	}
 	registries, digest, iterations, layout, err := deriveCurrentSelectionRegistryCandidatesWithEvidence(inputs.files, inputs.hardware)
 	if err != nil {
 		return Result{}, err
 	}
-	pack, route, err := currentEnrollmentPackWithContextEvidence(ctx, inputs.files, registries, inputs.hardware, options.Progress)
+	pack, route, err := currentEnrollmentPackWithContextEvidence(ctx, inputs.files, registries, inputs.hardware, progress)
 	if err != nil {
 		clearDecodedSIDBRegistryCandidates(registries)
 		return Result{}, err

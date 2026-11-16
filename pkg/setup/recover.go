@@ -136,22 +136,9 @@ func Recover(ctx context.Context, options RecoverOptions) (Result, error) {
 		return outcome, fmt.Errorf("recovered SINF selector does not match capture manifest")
 	}
 	defer clear(recovered.EnrollmentModel)
-	candidate := filepath.Join(options.Output, "fairplay-enrollment.candidate.bin")
-	if err := writePrivateFile(candidate, recovered.EnrollmentModel); err != nil {
-		return outcome, err
-	}
 	ipa := filepath.Join(options.Capture, filepath.FromSlash(manifest.IPA.Path))
-	decrypted := filepath.Join(options.Output, "App.decrypted.ipa")
-	decryptionReport := filepath.Join(options.Output, "App.decrypted.json")
-	options.report("profile=%s phase=validate-ipa", selectedProfile)
-	result, err := fairplay.DecryptIPA(fairplay.DecryptOptions{
-		InputPath: ipa, OutputPath: decrypted, ReportPath: decryptionReport, ModelPath: candidate,
-	})
+	enrollment, result, err := validateRecoveredEnrollment(ctx, recovered.EnrollmentModel, ipa, options.Output, selectedProfile, options.Progress)
 	if err != nil {
-		return outcome, fmt.Errorf("validate recovered enrollment: %w", err)
-	}
-	enrollment := filepath.Join(options.Output, "fairplay-enrollment.bin")
-	if err := os.Rename(candidate, enrollment); err != nil {
 		return outcome, err
 	}
 	summary := map[string]any{
@@ -161,7 +148,7 @@ func Recover(ctx context.Context, options RecoverOptions) (Result, error) {
 		"evaluator_profile":           "typed-current-enrollment",
 		"portable_semantic_evaluator": true,
 		"canonical_contract":          canonical.Contract, "canonical_input_sha256": canonical.FingerprintSHA256,
-		"enrollment_model": enrollment, "decrypted_ipa": decrypted,
+		"enrollment_model": enrollment, "decrypted_ipa": result.OutputPath,
 		"decrypted_ipa_sha256": result.OutputSHA256, "encrypted_images": result.EncryptedImages,
 		"decrypted_pages": result.DecryptedPages, "input_profile": selectedProfile,
 		"plaintext_verified":  result.PlaintextVerified,

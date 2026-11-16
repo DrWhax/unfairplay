@@ -11,7 +11,7 @@ import (
 
 func TestCommandsAreRegistered(t *testing.T) {
 	root := newRootCommand()
-	for _, name := range []string{"setup", "collect", "recover", "decrypt", "convert-ipa-macos", "convert-decrypted-ipa-macos", "verify", "doctor"} {
+	for _, name := range []string{"setup", "export-enrollment", "collect", "recover", "decrypt", "convert-ipa-macos", "convert-decrypted-ipa-macos", "verify", "doctor"} {
 		command, _, err := root.Find([]string{name})
 		if err != nil || command == root || command.Name() != name {
 			t.Fatalf("command %s is not registered: %v", name, err)
@@ -149,8 +149,5 @@ func TestSetupIPAIsOptional(t *testing.T) {
 	}
 	if len(flag.Annotations["cobra_annotation_bash_completion_one_required_flag"]) != 0 {
 		t.Fatal("--ipa remains required")
-	}
-	if len(command.Flags().Lookup("app").Annotations["cobra_annotation_bash_completion_one_required_flag"]) == 0 {
-		t.Fatal("--app must remain required")
 	}
 }

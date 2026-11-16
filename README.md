@@ -73,6 +73,49 @@ Decrypt another IPA:
 The default model directory is inside the user configuration directory. Set
 `UNFAIRPLAY_MODEL_DIR` or pass `--model` to use another location.
 
+### Export enrollment now, choose an IPA later
+
+On an already enrolled Mac, export the enrollment without supplying an installed
+app or IPA:
+
+```sh
+sudo ./unfairplay export-enrollment --output enrollment.snapshot
+```
+
+The output parent directory must already exist. The command never overwrites an
+existing snapshot. It writes a mode-0600 file and restores its ownership to the
+invoking user when run through sudo.
+
+The snapshot contains the hardware identity and one distinct supported SIDB
+container. Export authenticates and decodes the container, but does not select
+an account/key route or produce a validated model. It neither enrolls the Mac
+nor adds missing licenses. Treat it as broader private enrollment state: keep it
+secret and transfer it only to machines you control, preserving mode 0600.
+
+Later, on macOS or Linux, select a personalized IPA and run setup as your normal
+user:
+
+```sh
+./unfairplay setup --enrollment enrollment.snapshot --ipa App.ipa
+./unfairplay decrypt --input AnotherApp.ipa
+```
+
+This uses the IPA's own licenses; no installed-app path is required. Setup
+authenticates the exact selected route and signed page-key envelopes, then
+decrypts and validates the complete IPA before installing the usual reusable
+model. Missing pre-encryption hashes remain `plaintext_verified=false`.
+Snapshot setup currently requires every encrypted image in the IPA to share
+one user/key selector; multiple-selector IPAs reject explicitly. A snapshot can
+be reused with different IPAs or selectors already present in its captured
+state. Missing records require an appropriate enrollment; recovery never tries
+other routes. Re-export after enrollment changes when necessary.
+
+`--app` and `--enrollment` are mutually exclusive. Existing app-based setup and
+saved models continue to work. Synthetic tests cover this workflow; private
+installed-app versus snapshot equivalence is an opt-in control in [QA.md](QA.md).
+
+### Decryption behavior
+
 IPAs with extensions and watch apps are decrypted in one pass.
 
 The output keeps the input's `SC_Info` licenses and `iTunesMetadata.plist`,

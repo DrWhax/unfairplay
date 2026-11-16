@@ -20,6 +20,7 @@ import (
 // Options configures Run. ModelDirectory is required.
 type Options struct {
 	AppPath, IPAPath, ModelDirectory, HardwareInterface string
+	EnrollmentPath                                      string
 	KeepWork                                            bool
 	// Progress, when set, receives one status line per recovery step.
 	Progress func(string)
@@ -136,11 +137,17 @@ func installEnrollmentModel(directory, selector string, model []byte) (string, s
 	return path, digestText, reused, nil
 }
 
-// Run recovers the enrollment of one installed app and saves it under
+// Run recovers enrollment from an installed app or a snapshot plus IPA and saves it under
 // options.ModelDirectory.
 func Run(ctx context.Context, options Options) (Result, error) {
 	if options.ModelDirectory == "" {
 		return Result{}, errors.New("setup: Options.ModelDirectory is required")
+	}
+	if (options.AppPath == "") == (options.EnrollmentPath == "") {
+		return Result{}, fmt.Errorf("setup requires exactly one of --app or --enrollment")
+	}
+	if options.EnrollmentPath != "" && options.IPAPath == "" {
+		return Result{}, fmt.Errorf("snapshot setup requires --ipa")
 	}
 	work, err := os.MkdirTemp("", "unfairplay-setup-*")
 	if err != nil {
@@ -159,18 +166,19 @@ func Run(ctx context.Context, options Options) (Result, error) {
 	} else {
 		defer func() { _ = restoreInvokingUserTree(work) }()
 	}
-	capture := filepath.Join(work, "capture")
-	manifest, err := fairplay.CollectEnrollment(fairplay.EnrollmentCollectOptions{
-		AppPath: options.AppPath, IPAPath: options.IPAPath, OutputPath: capture,
-		HardwareInterface: options.HardwareInterface,
-	})
-	if err != nil {
-		return Result{}, err
+	var recovered Result
+	var selector string
+	if options.EnrollmentPath != "" {
+		recovered, selector, err = recoverSnapshotEnrollment(ctx, options.EnrollmentPath, options.IPAPath, work, options.Progress)
+	} else {
+		capture := filepath.Join(work, "capture")
+		var manifest fairplay.EnrollmentCaptureManifest
+		manifest, err = fairplay.CollectEnrollment(fairplay.EnrollmentCollectOptions{AppPath: options.AppPath, IPAPath: options.IPAPath, OutputPath: capture, HardwareInterface: options.HardwareInterface})
+		if err == nil {
+			selector = manifest.App.SelectorID
+			recovered, err = Recover(ctx, RecoverOptions{Capture: capture, Output: filepath.Join(work, "recovery"), Progress: options.Progress})
+		}
 	}
-	recoveryDirectory := filepath.Join(work, "recovery")
-	recovered, err := Recover(ctx, RecoverOptions{
-		Capture: capture, Output: recoveryDirectory, Progress: options.Progress,
-	})
 	if err != nil {
 		return Result{}, err
 	}
@@ -179,7 +187,7 @@ func Run(ctx context.Context, options Options) (Result, error) {
 		return Result{}, err
 	}
 	defer clear(model)
-	modelPath, modelSHA256, reused, err := installEnrollmentModel(options.ModelDirectory, manifest.App.SelectorID, model)
+	modelPath, modelSHA256, reused, err := installEnrollmentModel(options.ModelDirectory, selector, model)
 	if err != nil {
 		return Result{}, err
 	}
@@ -192,7 +200,7 @@ func Run(ctx context.Context, options Options) (Result, error) {
 		return Result{}, err
 	}
 	summary := setupSummary(recovered.Summary)
-	summary["selector"] = manifest.App.SelectorID
+	summary["selector"] = selector
 	summary["model"] = modelPath
 	summary["model_directory"] = options.ModelDirectory
 	summary["model_sha256"] = modelSHA256

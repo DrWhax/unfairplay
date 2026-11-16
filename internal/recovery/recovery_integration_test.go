@@ -60,4 +60,65 @@ func TestRecoveryReproducibleLocalCapture(t *testing.T) {
 	if result.EncryptedImages == 0 || result.DecryptedPages == 0 {
 		t.Fatal("no encrypted images were validated")
 	}
+
+	// The same private control must also recover using only SIDB/hardware and
+	// licenses from the IPA, without the installed executable or installed SINF.
+	var snapshot fairplay.EnrollmentSnapshot
+	snapshot.ProductVersion, snapshot.BuildVersion = manifest.ProductVersion, manifest.BuildVersion
+	hardware, err := os.ReadFile(canonical.PrivateHardwarePath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	copy(snapshot.Hardware[:], hardware)
+	clear(hardware)
+	defer snapshot.Clear()
+	for _, sidb := range canonical.SIDBs {
+		data, readErr := os.ReadFile(filepath.Join(capture, filepath.FromSlash(sidb.File.CapturePath)))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if snapshot.SIDB != nil {
+			equal := bytes.Equal(snapshot.SIDB, data)
+			clear(data)
+			if !equal {
+				t.Fatal("private control has distinct SIDB containers")
+			}
+		} else {
+			snapshot.SIDB = data
+		}
+	}
+	encoded, err := snapshot.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := fairplay.ParseEnrollmentSnapshot(encoded)
+	clear(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parsed.Clear()
+	ipa := filepath.Join(capture, manifest.IPA.Path)
+	licenses, err := fairplay.ReadIPAEnrollmentInputs(ipa)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer licenses.Clear()
+	fromSnapshot, err := recovery.RecoverEnrollmentSnapshot(t.Context(), parsed, licenses, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer clear(fromSnapshot.EnrollmentModel)
+	if !bytes.Equal(first.EnrollmentModel, fromSnapshot.EnrollmentModel) || first.Layout != fromSnapshot.Layout || first.StateSHA256 != fromSnapshot.StateSHA256 {
+		t.Fatal("snapshot/IPA recovery differs from installed-app recovery")
+	}
+	if err := os.WriteFile(modelPath, fromSnapshot.EnrollmentModel, 0600); err != nil {
+		t.Fatal(err)
+	}
+	snapshotResult, err := fairplay.DecryptIPA(fairplay.DecryptOptions{InputPath: ipa, ModelPath: modelPath, OutputPath: filepath.Join(directory, "snapshot.ipa"), ReportPath: filepath.Join(directory, "snapshot.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshotResult.OutputSHA256 != result.OutputSHA256 || snapshotResult.PlaintextVerified != result.PlaintextVerified || snapshotResult.EncryptedImages != result.EncryptedImages || snapshotResult.DecryptedPages != result.DecryptedPages {
+		t.Fatal("snapshot end-to-end validation differs")
+	}
 }

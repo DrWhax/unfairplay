@@ -83,6 +83,35 @@ coverage requires separate account controls. The command fails on any
 changed hash, image count, page count, or incomplete decryption. Use it before
 creating a release tag.
 
+## Enrollment snapshot control
+
+The app-independent path uses the same SIDB route and model format. Run the
+private differential control against an existing capture containing a matching
+IPA with one selector across its encrypted images:
+
+```sh
+UNFAIRPLAY_TEST_CAPTURE=/private/path/App.capture \
+go test ./internal/recovery -run '^TestRecoveryReproducibleLocalCapture$' -count=1 -v
+```
+
+Require the test to run, not skip. It compares installed-app recovery with
+snapshot plus IPA-license recovery, requiring identical model bytes, route
+evidence, recovery-state hash, decrypted IPA hash, image/page counts, and
+plaintext-verification status. It stores temporary output only in the test
+directory. Report only anonymous control labels and pass/fail results.
+
+Also exercise live `sudo unfairplay export-enrollment` on macOS, then
+`setup --enrollment ... --ipa ...` as the normal user on macOS and Linux.
+Check private snapshot permissions,
+no-overwrite behavior, rejection of a wrong enrollment, and absence of an
+installed model after failed IPA validation. Export authenticates the container;
+it does not establish a usable account route until IPA-backed setup succeeds.
+
+Public tests use a synthetic SIDB, hardware identity, SINF, signed SUPF under a
+test-only CA, and a complete synthetic IPA with ciphertext and pre-encryption
+hash tables. Production always uses the pinned page-key signing authority.
+These tests do not establish independent-enrollment or native execution coverage.
+
 ## IORegistry hardware identity control
 
 On macOS, compare live hardware discovery with a previously verified six-byte

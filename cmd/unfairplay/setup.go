@@ -66,18 +66,24 @@ func newSetupCommand() *cobra.Command {
 	var options setup.Options
 	command := &cobra.Command{
 		Use:   "setup",
-		Short: "Set up reusable IPA decryption from one installed app",
+		Short: "Set up reusable IPA decryption from an installed app or enrollment snapshot",
+		Args:  cobra.NoArgs,
 		RunE: func(command *cobra.Command, _ []string) error {
+			if options.EnrollmentPath != "" && command.Flags().Changed("interface") {
+				return fmt.Errorf("--interface is only used with --app")
+			}
 			return runSetup(command.Context(), options)
 		},
 	}
 	flags := command.Flags()
 	flags.StringVar(&options.AppPath, "app", "", "Native Mac App Store-installed .app path")
+	flags.StringVar(&options.EnrollmentPath, "enrollment", "", "Private enrollment snapshot exported from an enrolled Mac")
 	flags.StringVar(&options.IPAPath, "ipa", "", "Matching personalized encrypted IPA (defaults to a validation archive of --app)")
 	flags.StringVar(&options.ModelDirectory, "model-dir", "", "Private model directory (defaults to the user configuration directory)")
 	flags.StringVar(&options.HardwareInterface, "interface", "en0", "Built-in IORegistry network interface")
 	flags.BoolVar(&options.KeepWork, "keep-work", false, "Keep the private capture and validation files")
-	_ = command.MarkFlagRequired("app")
+	command.MarkFlagsMutuallyExclusive("app", "enrollment")
+	command.MarkFlagsOneRequired("app", "enrollment")
 	return command
 }
 
