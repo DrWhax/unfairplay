@@ -282,6 +282,33 @@ sudo ./unfairplay collect --app /Applications/App.app --output App.capture
 ./unfairplay recover --capture App.capture --output App.recovery
 ```
 
+### Print a model's full contents
+
+`doctor --model` reports only model metadata. `dump-model` prints every field,
+including the secret key and lookup tables:
+
+```sh
+./unfairplay dump-model model.bin                  # readable text
+./unfairplay dump-model --format json model.bin    # JSON
+./unfairplay dump-model --raw model.bin            # also hex-dump the whole file
+```
+
+The output shows:
+
+- **Header:** magic, version, declared size, file SHA-256, and model identity.
+- **Selector:** the SINF `user` and `key` values, for version 2 and 3 models.
+- **Version 3 parameters:** source offset, source size, and final XOR.
+- **Key material:** the AES key, plus whitening for version 1 and 2 models.
+- **Tables:** the version 3 output mask, and each 256-byte table with its
+  offset. Identity tables are flagged.
+- **Layout:** the offset and size of every field.
+
+The model is validated like it is for decryption. Files readable by group or
+other users are refused. The model contains no Apple ID or email address.
+
+The output can decrypt every app from the enrollment. Treat it like the model
+file itself: never paste it into issues, Discord, or logs.
+
 ## FAQ
 
 ### What is an enrollment?

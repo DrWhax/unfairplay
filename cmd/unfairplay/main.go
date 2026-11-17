@@ -62,7 +62,7 @@ func newRootCommand() *cobra.Command {
 		SilenceErrors: true,
 		Version:       executableVersion(),
 	}
-	root.AddCommand(newSetupCommand(), newExportEnrollmentCommand(), newCollectCommand(), newRecoverCommand(), newDecryptCommand(), newConvertIPAMacOSCommand(), newConvertDecryptedIPAMacOSCommand(), newVerifyCommand(), newDoctorCommand())
+	root.AddCommand(newSetupCommand(), newExportEnrollmentCommand(), newCollectCommand(), newRecoverCommand(), newDecryptCommand(), newConvertIPAMacOSCommand(), newConvertDecryptedIPAMacOSCommand(), newVerifyCommand(), newDoctorCommand(), newDumpModelCommand())
 	return root
 }
 
