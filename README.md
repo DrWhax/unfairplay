@@ -118,19 +118,17 @@ installed-app versus snapshot equivalence is an opt-in control in [QA.md](QA.md)
 
 ```sh
 ./unfairplay decrypt-recoverable --input App.ipa --model source-model.bin
-./unfairplay encrypt --input App.decrypted-recoverable.ipa
+./unfairplay encrypt --input App.decrypted-recoverable.ipa --model destination-model.bin
 ```
 
-The first command stores the application key and source rights, including
-`mode`, in one `.sinf-recovery` file. Keep this IPA private. The second
-restores encrypted executables and replaces the recovery file with SINF
-licenses for the saved destination model. Use `--model` to select a different
-model or disambiguate multiple saved models.
+The first command saves the application key and source rights in a private
+`.sinf-recovery` file. The second restores encrypted executables and replaces
+that file with SINF licenses for the destination enrollment. Omit `--model`
+to use a single saved model.
 
-Both commands support `-h` and `--output`, and refuse to overwrite existing
-files. The current format requires one source license, a v2 enrollment model,
-`game`/`itun` content with `medi=128`, and complete plaintext hash coverage.
-Regenerate older recovery archives with `decrypt-recoverable`.
+Both commands support `-h` and `--output` and refuse to overwrite files.
+Requires one source license, v2 models, `game`/`itun` content with `medi=128`,
+and complete plaintext hash coverage. Regenerate older recovery archives.
 
 ### Decryption behavior
 
