@@ -2,10 +2,13 @@ package recoverable
 
 import (
 	"archive/zip"
+	"encoding/binary"
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
 
+	f "github.com/DrWhax/unfairplay/pkg/fairplay"
 	"howett.net/plist"
 )
 
@@ -70,5 +73,44 @@ func TestRecoveryPathRejectsInvalidOrLegacy(t *testing.T) {
 		if _, e := recoveryMemberPath(m); e == nil {
 			t.Fatal("ambiguous/legacy material accepted")
 		}
+	}
+}
+
+func TestOmitAppleDoubleSidecars(t *testing.T) {
+	const app = "Payload/Test.app/"
+	const sinf = app + "SC_Info/Test.sinf"
+	const sidecar = "__MACOSX/" + app + "SC_Info/._Test.sinf"
+	header := make([]byte, 26)
+	binary.BigEndian.PutUint32(header[:4], 0x00051607)
+	binary.BigEndian.PutUint32(header[4:8], 0x00020000)
+
+	keep := map[string][]byte{
+		sinf:                                     {1},
+		app + "SC_Info/._Other.sinf":             header,
+		"__MACOSX/" + app + "SC_Info/Other.sinf": header,
+		"__MACOSX/" + app + "SC_Info/._Invalid.sinf": make([]byte, 26),
+		"__MACOSX/" + app + "SC_Info/._Short.sinf":   header[:8],
+	}
+	entries := maps.Clone(keep)
+	entries[sidecar] = header
+	entries["__MACOSX/"+app+"SC_Info/._Test.supf"] = header
+	z := recoveryPathFixture(t, "Test", entries)
+	files, err := members(z)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.OmitAppleDoubleSidecars(files); err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != len(keep)+1 { // Info.plist plus the non-AppleDouble entries.
+		t.Fatalf("unexpected member count: %d", len(files))
+	}
+	for name := range keep {
+		if files[name] == nil {
+			t.Errorf("removed non-sidecar member %q", name)
+		}
+	}
+	if files[sidecar] != nil || files["__MACOSX/"+app+"SC_Info/._Test.supf"] != nil {
+		t.Fatal("retained an AppleDouble sidecar")
 	}
 }

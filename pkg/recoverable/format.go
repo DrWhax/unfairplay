@@ -141,6 +141,7 @@ func read(v *zip.File) ([]byte, error) {
 	defer r.Close()
 	return io.ReadAll(r)
 }
+
 func makeAtom(name string, payload []byte) []byte {
 	b := make([]byte, 8+len(payload))
 	binary.BigEndian.PutUint32(b, uint32(len(b)))
@@ -194,6 +195,10 @@ func encryptInto(input, mp, out string) error {
 	}
 	ms, e := members(z)
 	if e != nil {
+		z.Close()
+		return e
+	}
+	if e := f.OmitAppleDoubleSidecars(ms); e != nil {
 		z.Close()
 		return e
 	}
@@ -274,6 +279,9 @@ func pack(input, mp, output string) (err error) {
 	if e != nil {
 		return e
 	}
+	if e := f.OmitAppleDoubleSidecars(ms); e != nil {
+		return e
+	}
 	recoveryPath, e := recoveryMemberPath(ms)
 	if e != nil {
 		return e
@@ -317,6 +325,9 @@ func pack(input, mp, output string) (err error) {
 	w := zip.NewWriter(out)
 	for _, v := range z.File {
 		n := v.Name
+		if ms[n] == nil {
+			continue
+		}
 		keep := false
 		for _, prefix := range protected {
 			if strings.HasPrefix(n, prefix) {

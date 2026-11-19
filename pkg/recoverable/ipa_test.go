@@ -35,8 +35,8 @@ func TestExistingOutputPreserved(t *testing.T) {
 	want := []byte("existing")
 	os.WriteFile(p, want, 0600)
 	for _, f := range []func(Options) (Result, error){Decrypt, Encrypt} {
-		if _, e := f(Options{InputPath: "input.ipa", OutputPath: p}); e == nil {
-			t.Fatal("existing output accepted")
+		if _, e := f(Options{InputPath: "input.ipa", OutputPath: p}); e == nil || e.Error() != "refusing to replace "+p {
+			t.Fatalf("unexpected overwrite error: %v", e)
 		}
 		got, _ := os.ReadFile(p)
 		if !bytes.Equal(got, want) {

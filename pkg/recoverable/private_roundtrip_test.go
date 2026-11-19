@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
+	zipmaps "maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -113,7 +114,21 @@ func TestPrivateRecoveryRoundTrip(t *testing.T) {
 					}
 				}
 			}
-			for n, v := range maps[0] {
+			sourceMembers := zipmaps.Clone(maps[0])
+			if err := f.OmitAppleDoubleSidecars(sourceMembers); err != nil {
+				t.Fatal(err)
+			}
+			for n := range maps[0] {
+				if sourceMembers[n] != nil {
+					continue
+				}
+				for i := 1; i < 4; i++ {
+					if maps[i][n] != nil {
+						t.Fatal("AppleDouble sidecar retained")
+					}
+				}
+			}
+			for n, v := range sourceMembers {
 				b, e := read(v)
 				if e != nil {
 					t.Fatal(e)

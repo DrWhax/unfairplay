@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"sort"
@@ -48,6 +49,9 @@ func RestoreRecoverableContent(input, output string, appkey, sinf []byte) (err e
 			return fmt.Errorf("symlink")
 		}
 		files[v.Name] = v
+	}
+	if e := OmitAppleDoubleSidecars(files); e != nil {
+		return e
 	}
 	inert, e := unencryptedLicenseRoutes(files)
 	if e != nil {
@@ -94,7 +98,7 @@ func RestoreRecoverableContent(input, output string, appkey, sinf []byte) (err e
 	licensePaths := map[string]bool{}
 	count := 0
 	for _, v := range z.File {
-		if v.FileInfo().IsDir() {
+		if files[v.Name] == nil || v.FileInfo().IsDir() {
 			continue
 		}
 		probe, e := readMachOProbe(v)
@@ -279,7 +283,7 @@ func RestoreRecoverableContent(input, output string, appkey, sinf []byte) (err e
 	w := zip.NewWriter(f)
 	done := map[string]bool{}
 	for _, v := range z.File {
-		if strings.HasSuffix(v.Name, ".sinf-recovery") {
+		if files[v.Name] == nil || strings.HasSuffix(v.Name, ".sinf-recovery") {
 			continue
 		}
 		if strings.HasSuffix(v.Name, ".sinf") {
@@ -396,6 +400,34 @@ func verifyUnencryptedRecoveryRange(part []byte, layout machoLayout) error {
 	for _, audit := range audits {
 		if audit.SlotCount == 0 || audit.MatchedSlots != audit.SlotCount {
 			return fmt.Errorf("ordinary CodeDirectory hashes do not match the unchanged range")
+		}
+	}
+	return nil
+}
+
+// OmitAppleDoubleSidecars removes Finder metadata from the member index.
+// Finder ZIP archives can include AppleDouble metadata for a member under
+// __MACOSX, with the original basename prefixed by "._". It is not an app
+// resource or a second license, even when its name ends in .sinf or .supf.
+func OmitAppleDoubleSidecars(files map[string]*zip.File) error {
+	for name, file := range files {
+		if !strings.HasPrefix(name, "__MACOSX/") || !strings.HasPrefix(path.Base(name), "._") ||
+			!file.Mode().IsRegular() || file.UncompressedSize64 < 26 {
+			continue
+		}
+		r, err := file.Open()
+		if err != nil {
+			return fmt.Errorf("open possible AppleDouble sidecar %q: %w", name, err)
+		}
+		var header [26]byte
+		_, err = io.ReadFull(r, header[:])
+		r.Close()
+		if err != nil {
+			return fmt.Errorf("read possible AppleDouble sidecar %q: %w", name, err)
+		}
+		if binary.BigEndian.Uint32(header[0:4]) == 0x00051607 &&
+			binary.BigEndian.Uint32(header[4:8]) == 0x00020000 {
+			delete(files, name)
 		}
 	}
 	return nil

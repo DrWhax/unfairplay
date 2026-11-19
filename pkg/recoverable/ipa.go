@@ -58,8 +58,14 @@ func run(o Options, encrypt bool) (Result, error) {
 	if o.OutputPath == "" {
 		return result, fmt.Errorf("output is required")
 	}
-	if _, e := os.Lstat(o.OutputPath); !os.IsNotExist(e) {
-		return result, fmt.Errorf("output must be a new file")
+	output, e := filepath.Abs(o.OutputPath)
+	if e != nil {
+		return result, e
+	}
+	if _, e := os.Lstat(output); e == nil {
+		return result, fmt.Errorf("refusing to replace %s", output)
+	} else if !os.IsNotExist(e) {
+		return result, e
 	}
 	mp, e := SelectModel(o.ModelPath)
 	if e != nil {
@@ -82,6 +88,9 @@ func run(o Options, encrypt bool) (Result, error) {
 	}
 	// Linking publishes without overwriting a destination created concurrently.
 	if e = os.Link(candidate, o.OutputPath); e != nil {
+		if os.IsExist(e) {
+			return result, fmt.Errorf("refusing to replace %s", output)
+		}
 		return result, e
 	}
 	return Result{true, o.OutputPath, true}, nil
