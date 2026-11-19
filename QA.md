@@ -424,3 +424,17 @@ pinned model/output hashes and image/page counts in a private manifest.
 These controls establish this installed-bundle layout and enrollment only;
 other installed variants, accounts and missing-hash cases require their own
 controls. No private fixture data or identifying measurements are committed.
+
+## Recoverable IPA controls
+
+Run `decrypt-recoverable`, `encrypt`, and `convert-ipa-macos` on private controls.
+Set `UNFAIRPLAY_RECOVERY_CONTROLS` to a private JSON array with `Source`,
+`Enhanced`, `Encrypted`, `Converted`, `SourceModel`, and `TargetModel` paths:
+
+```sh
+go test ./pkg/recoverable -run '^TestPrivateRecoveryRoundTrip$' -count=1 -v
+```
+
+Require a pass, not a skip. The audit checks retained source fields, restored
+Mach-O and page-file bytes, unchanged unencrypted bundles, and removal of
+recovery material. Native launch is a separate manual check.

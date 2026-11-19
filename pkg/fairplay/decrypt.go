@@ -259,6 +259,10 @@ func openIPAInventory(path string) (ipaInventory, *zip.ReadCloser, error) {
 }
 
 func decryptPagesInPlace(output []byte, image encryptedImage, records [][32]byte, deriver *pageKeyDeriver) ([][16]byte, error) {
+	return cryptPagesInPlace(output, image, records, deriver, false)
+}
+
+func cryptPagesInPlace(output []byte, image encryptedImage, records [][32]byte, deriver *pageKeyDeriver, encrypt bool) ([][16]byte, error) {
 	start := int(image.layout.cryptOffset)
 	end := start + int(image.layout.cryptSize)
 	if start < 0 || end < start || end > len(output) || len(records)*pageBytes != int(image.layout.cryptSize) {
@@ -284,7 +288,11 @@ func decryptPagesInPlace(output []byte, image encryptedImage, records [][32]byte
 				clear(key[:])
 				pageStart := start + index*pageBytes
 				page := output[pageStart : pageStart+pageBytes]
-				cipher.NewCBCDecrypter(block, record[16:]).CryptBlocks(page, page)
+				if encrypt {
+					cipher.NewCBCEncrypter(block, record[16:]).CryptBlocks(page, page)
+				} else {
+					cipher.NewCBCDecrypter(block, record[16:]).CryptBlocks(page, page)
+				}
 			}
 		}(worker)
 	}

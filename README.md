@@ -114,6 +114,22 @@ other routes. Re-export after enrollment changes when necessary.
 saved models continue to work. Synthetic tests cover this workflow; private
 installed-app versus snapshot equivalence is an opt-in control in [QA.md](QA.md).
 
+### Recoverable IPA decryption
+
+```sh
+./unfairplay decrypt-recoverable --input App.ipa --model source-model.bin
+./unfairplay encrypt --input App.decrypted-recoverable.ipa --model destination-model.bin
+```
+
+The first command saves the application key and source rights in a private
+`.sinf-recovery` file. The second restores encrypted executables and replaces
+that file with SINF licenses for the destination enrollment. Omit `--model`
+to use a single saved model.
+
+Both commands support `-h` and `--output` and refuse to overwrite files.
+Requires one source license, v2 models, `game`/`itun` content with `medi=128`,
+and complete plaintext hash coverage. Regenerate older recovery archives.
+
 ### Decryption behavior
 
 IPAs with extensions and watch apps are decrypted in one pass.

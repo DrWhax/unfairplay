@@ -564,6 +564,10 @@ func macOSSINFMember(root, relative string) (string, error) {
 func addMacOSSINFReplicas(source *zip.ReadCloser, files map[string]*zip.File,
 	replacements map[string][]byte, reportsByPath map[string]MacOSSINFRecordReport,
 ) (map[string]macOSSINFReplica, []MacOSSINFRecordReport, error) {
+	inert, inertErr := unencryptedLicenseRoutes(files)
+	if inertErr != nil {
+		return nil, nil, inertErr
+	}
 	replicas := make(map[string]macOSSINFReplica)
 	var reports []MacOSSINFRecordReport
 	for _, file := range source.File {
@@ -595,6 +599,9 @@ func addMacOSSINFReplicas(source *zip.ReadCloser, files map[string]*zip.File,
 				target, pathErr := macOSSINFMember(root, relative)
 				if pathErr != nil {
 					return fmt.Errorf("%s: %w", file.Name, pathErr)
+				}
+				if inert[target] {
+					continue
 				}
 				var targetData []byte
 				targetFile, targetPresent := files[target]
